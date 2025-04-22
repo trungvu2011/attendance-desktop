@@ -10,7 +10,8 @@ class AuthController:
         """Login to the system and get current user"""
         result = self.api_service.login(email, password)
         if result:
-            self.current_user = User.from_json(result.get('user', {}))
+            # API trả về trực tiếp thông tin người dùng từ authentication
+            self.current_user = User.from_json(result)
             return True
         return False
     

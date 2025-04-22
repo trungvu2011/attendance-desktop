@@ -11,25 +11,37 @@ class User:
     
     @staticmethod
     def from_json(data):
+        """
+        Tạo đối tượng User từ dữ liệu JSON
+        Hỗ trợ cả hai format từ API đăng nhập và API users
+        """
+        # Hỗ trợ cả các định dạng id khác nhau
+        user_id = data.get('userId') or data.get('id')
+        # Hỗ trợ cả định dạng birthDate và birth
+        birth_date = data.get('birth') or data.get('birthDate')
+        # Hỗ trợ cả định dạng citizenId
+        citizen_id = data.get('citizenId')
+        
         return User(
-            user_id=data.get('id'),
+            user_id=user_id,
             name=data.get('name'),
             email=data.get('email'),
-            birth_date=data.get('birthDate'),
-            citizen_id=data.get('citizenId'),
+            birth_date=birth_date,
+            citizen_id=citizen_id,
             role=data.get('role')
         )
     
     def to_json(self):
+        """Chuyển đổi đối tượng User thành JSON để gửi lên API"""
         data = {
             'name': self.name,
             'email': self.email,
-            'birthDate': self.birth_date,
+            'birth': self.birth_date,  # Sử dụng trường 'birth' theo tài liệu API
             'citizenId': self.citizen_id,
             'role': self.role
         }
         if self.password:
             data['password'] = self.password
         if self.user_id:
-            data['id'] = self.user_id
+            data['userId'] = self.user_id  # Sử dụng trường 'userId' theo tài liệu API
         return data

@@ -12,8 +12,9 @@ class Schedule:
     
     @staticmethod
     def from_json(data):
+        """Tạo đối tượng Schedule từ dữ liệu JSON theo định dạng API mới"""
         return Schedule(
-            schedule_id=data.get('id'),
+            schedule_id=data.get('scheduleId'),
             start_time=data.get('startTime'),
             end_time=data.get('endTime'),
             status=data.get('status'),
@@ -21,6 +22,7 @@ class Schedule:
         )
     
     def to_json(self):
+        """Chuyển đổi đối tượng Schedule thành JSON để gửi lên API"""
         data = {
             'startTime': self.start_time,
             'endTime': self.end_time,
@@ -29,5 +31,5 @@ class Schedule:
         if self.exam_id:
             data['examId'] = self.exam_id
         if self.schedule_id:
-            data['id'] = self.schedule_id
+            data['scheduleId'] = self.schedule_id
         return data

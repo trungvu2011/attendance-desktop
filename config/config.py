@@ -6,7 +6,7 @@ class Config:
     
     # Auth Endpoints
     AUTH_LOGIN = f"{API_BASE_URL}/auth/login"
-    AUTH_LOGOUT = f"{API_BASE_URL}/auth/logout"
+    AUTH_LOGOUT = f"{API_BASE_URL}/auth/signout"  # Hỗ trợ cả /signout và /logout
     AUTH_REFRESH_TOKEN = f"{API_BASE_URL}/auth/refresh-token"
     AUTH_VALIDATE_TOKEN = f"{API_BASE_URL}/auth/validate-token"
     
@@ -21,10 +21,10 @@ class Config:
     SCHEDULES_URL = f"{API_BASE_URL}/schedules"
     
     # Attendance Endpoints
-    ATTENDANCE_URL = f"{API_BASE_URL}/attendance"
+    ATTENDANCE_URL = f"{API_BASE_URL}/exam-attendances"
     
     # Monitoring Endpoints
-    MONITORING_URL = f"{API_BASE_URL}/monitoring"
+    MONITORING_URL = f"{API_BASE_URL}/monitoring-logs"
 
     # Role constants
     ROLE_ADMIN = "ADMIN"

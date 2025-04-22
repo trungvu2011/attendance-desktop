@@ -46,8 +46,12 @@ class ApiService:
         
         if response.status_code == 200:
             data = response.json()
-            self._save_token(data.get('token'))
-            return data
+            # Theo tài liệu API: lấy token từ cấu trúc authentication
+            if 'authentication' in data and 'token' in data['authentication']:
+                token = data['authentication']['token']
+                self._save_token(token)
+                return data['authentication']  # Trả về thông tin người dùng đã xác thực
+            return None
         return None
     
     def logout(self):
@@ -73,8 +77,11 @@ class ApiService:
         
         if response.status_code == 200:
             data = response.json()
-            self._save_token(data.get('token'))
-            return True
+            # Theo tài liệu API mới: lấy accessToken
+            if 'accessToken' in data:
+                self._save_token(data['accessToken'])
+                return True
+            return False
         return False
     
     def validate_token(self):
@@ -87,7 +94,10 @@ class ApiService:
             headers=self._get_headers()
         )
         
-        return response.status_code == 200
+        if response.status_code == 200:
+            data = response.json()
+            return data.get('valid', False)
+        return False
     
     def get(self, url, params=None):
         """Generic GET request"""
