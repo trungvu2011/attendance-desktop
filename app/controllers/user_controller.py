@@ -1,17 +1,25 @@
 from app.utils.api_service import ApiService
 from app.models.user import User
 from config.config import Config
+import logging
 
 class UserController:
     def __init__(self):
-        self.api_service = ApiService()
+        self.api_service = ApiService.get_instance()
     
     def get_all_users(self):
-        """Get all users from the system"""
-        result = self.api_service.get(Config.USERS_URL)
+        """Get all users from the system with admin permission"""
+        # Sử dụng API endpoint cho admin /api/user/all
+        print(f"Đang lấy danh sách tất cả người dùng từ {Config.USER_ALL_URL}")
+        result = self.api_service.get(Config.USER_ALL_URL)
+        
         if result:
+            print(f"Đã nhận được dữ liệu: {len(result)} người dùng")
             return [User.from_json(user_data) for user_data in result]
-        return []
+        else:
+            print(f"Không thể lấy danh sách người dùng từ API admin. Đảm bảo bạn đang đăng nhập với quyền admin.")
+            # Không quay lại API cũ vì API cũ không trả về tất cả người dùng cho admin
+            return []
     
     def get_user_by_id(self, user_id):
         """Get a user by ID"""
@@ -22,10 +30,38 @@ class UserController:
     
     def get_current_user_profile(self):
         """Get current user profile from API"""
-        result = self.api_service.get(Config.USER_PROFILE_URL)
-        if result:
-            return User.from_json(result)
-        return None
+        # In ra log để dễ debug
+        print(f"\n=== ĐANG LẤY THÔNG TIN PROFILE TỪ {Config.USER_PROFILE_URL} ===")
+        
+        try:
+            # Gọi API lấy profile
+            print("Gửi GET request tới API profile...")
+            result = self.api_service.get(Config.USER_PROFILE_URL)
+            
+            if result:
+                print(f"API trả về dữ liệu: {result}")
+                user = User.from_json(result)
+                print(f"Đã parse thành công dữ liệu người dùng: {user.name}, {user.email}, {user.role}")
+                return user
+            else:
+                print("API trả về None hoặc dữ liệu trống")
+                
+                # Kiểm tra xem có token hay không
+                if not self.api_service.token:
+                    print("Không có token, không thể lấy thông tin profile")
+                    return None
+                
+                # Kiểm tra xem có dữ liệu user trong cache của api_service không
+                if hasattr(self.api_service, 'user_data') and self.api_service.user_data:
+                    print("Sử dụng dữ liệu user được cache trong api_service")
+                    return User.from_json(self.api_service.user_data)
+                
+                return None
+        except Exception as e:
+            print(f"Lỗi khi gọi API profile: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
     
     def create_user(self, user):
         """Create a new user"""
@@ -59,3 +95,19 @@ class UserController:
             return False, "Invalid email format"
         
         return True, "Validation passed"
+    
+    def register_user(self, user):
+        """Register a new user using the dedicated registration endpoint"""
+        registration_data = {
+            "name": user.name,
+            "email": user.email,
+            "password": user.password,
+            "citizenId": user.citizen_id,
+            "birth": user.birth_date,
+            "role": user.role
+        }
+        
+        result = self.api_service.post(Config.USER_REGISTER_URL, registration_data)
+        if result:
+            return User.from_json(result)
+        return None

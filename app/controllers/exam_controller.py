@@ -4,11 +4,18 @@ from config.config import Config
 
 class ExamController:
     def __init__(self):
-        self.api_service = ApiService()
+        self.api_service = ApiService.get_instance()
     
     def get_all_exams(self):
         """Get all exams from the system"""
         result = self.api_service.get(Config.EXAMS_URL)
+        if result:
+            return [Exam.from_json(exam_data) for exam_data in result]
+        return []
+    
+    def get_my_exams(self):
+        """Get exams assigned to the current logged-in candidate"""
+        result = self.api_service.get(Config.MY_EXAMS_URL)
         if result:
             return [Exam.from_json(exam_data) for exam_data in result]
         return []

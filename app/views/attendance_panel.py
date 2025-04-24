@@ -5,12 +5,14 @@ from PyQt5.QtCore import Qt
 from app.models.exam_attendance import ExamAttendance
 
 class AttendancePanel(QWidget):
-    def __init__(self, attendance_controller, user_controller, exam_controller, is_admin=True):
+    def __init__(self, attendance_controller, user_controller, exam_controller, is_admin=True, auth_controller=None, is_candidate=False):
         super().__init__()
         self.attendance_controller = attendance_controller
         self.user_controller = user_controller
         self.exam_controller = exam_controller
+        self.auth_controller = auth_controller  # Store the auth controller instance
         self.is_admin = is_admin
+        self.is_candidate = is_candidate  # Flag để xác định đây là view của candidate
         self.attendance_records = []
         self.users = []
         self.exams = []
@@ -83,12 +85,29 @@ class AttendancePanel(QWidget):
         self.setLayout(main_layout)
     
     def load_data(self):
-        # Load exams
-        self.exams = self.exam_controller.get_all_exams()
+        # Load exams - chỉ tải dữ liệu cần thiết dựa trên quyền
+        if self.is_admin:
+            # Admin cần tất cả exams
+            self.exams = self.exam_controller.get_all_exams()
+        else:
+            # Candidate chỉ cần exams của họ
+            if self.is_candidate:
+                self.exams = self.exam_controller.get_my_exams()
+            else:
+                # Fallback cho các trường hợp khác
+                self.exams = self.exam_controller.get_all_exams()
         
-        # Load users
-        self.users = self.user_controller.get_all_users()
-        
+        # Load users - chỉ tải dữ liệu users khi cần thiết
+        if self.is_admin:
+            # Admin cần thông tin tất cả users
+            self.users = self.user_controller.get_all_users()
+        else:
+            # Candidate chỉ cần thông tin của họ
+            if self.auth_controller:
+                user = self.auth_controller.get_current_user()
+                if user:
+                    self.users = [user]  # Chỉ lưu thông tin của user hiện tại
+            
         # Update exam filter
         if self.is_admin:
             self.exam_filter_combo.clear()
@@ -106,9 +125,7 @@ class AttendancePanel(QWidget):
             self.attendance_records = self.attendance_controller.get_all_attendance()
         else:
             # Candidate view - load only current user's attendance
-            from app.controllers.auth_controller import AuthController
-            auth_controller = AuthController()
-            user = auth_controller.get_current_user()
+            user = self.auth_controller.get_current_user() if self.auth_controller else None
             
             if user:
                 self.attendance_records = self.attendance_controller.get_attendance_by_user(user.user_id)

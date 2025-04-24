@@ -134,7 +134,7 @@ class MonitoringPanel(QWidget):
             self.log_table.setItem(row, 2, QTableWidgetItem(str(log.exam_id)))
             self.log_table.setItem(row, 3, QTableWidgetItem(log.timestamp))
             self.log_table.setItem(row, 4, QTableWidgetItem(log.event_type))
-            self.log_table.setItem(row, 5, QTableWidgetItem(log.description))
+            self.log_table.setItem(row, 5, QTableWidgetItem(log.message))  # Thay đổi từ description thành message
     
     def toggle_camera(self):
         # This would typically start/stop camera monitoring
@@ -167,8 +167,8 @@ class MonitoringPanel(QWidget):
             event_types = ["LOGIN", "LOGOUT", "ATTENDANCE", "CAMERA", "SYSTEM"]
             event_type = event_types[i % len(event_types)]
             
-            # Description based on event type
-            descriptions = {
+            # Message based on event type
+            messages = {
                 "LOGIN": "User logged in",
                 "LOGOUT": "User logged out",
                 "ATTENDANCE": "Attendance marked for exam",
@@ -182,7 +182,7 @@ class MonitoringPanel(QWidget):
                 exam_id=i % 3 + 1,  # Exam IDs 1-3
                 timestamp=timestamp,
                 event_type=event_type,
-                description=descriptions[event_type]
+                message=messages[event_type]  # Thay đổi từ description thành message
             )
             
             sample_logs.append(log)

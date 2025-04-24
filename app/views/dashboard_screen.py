@@ -8,6 +8,7 @@ from app.views.user_management import UserManagementPanel
 from app.views.exam_management import ExamManagementPanel
 from app.views.attendance_panel import AttendancePanel
 from app.views.monitoring_panel import MonitoringPanel
+from app.views.candidate_exam_panel import CandidateExamPanel
 from config.config import Config
 
 class DashboardScreen(QWidget):
@@ -27,9 +28,9 @@ class DashboardScreen(QWidget):
         main_layout.setSpacing(10)
         
         # Header section
-        header_frame = QFrame()
-        header_frame.setObjectName("header-frame")
-        header_frame.setStyleSheet("""
+        self.header_frame = QFrame()
+        self.header_frame.setObjectName("header-frame")
+        self.header_frame.setStyleSheet("""
             #header-frame {
                 background-color: white;
                 border-radius: 8px;
@@ -37,8 +38,8 @@ class DashboardScreen(QWidget):
             }
         """)
         header_layout = self.create_header()
-        header_frame.setLayout(header_layout)
-        main_layout.addWidget(header_frame)
+        self.header_frame.setLayout(header_layout)
+        main_layout.addWidget(self.header_frame)
         
         # Add dashboard summary for quick stats
         summary_frame = self.create_summary_dashboard()
@@ -161,17 +162,43 @@ class DashboardScreen(QWidget):
         # Grid layout for stats
         summary_layout = QGridLayout(summary_frame)
         
+        # Kiểm tra vai trò người dùng để chỉ gọi API cần thiết
+        is_admin = self.auth_controller.is_admin()
+        
+        # Lấy số liệu API dựa trên vai trò
+        if is_admin:
+            # Admin có quyền xem tất cả dữ liệu
+            users_count = len(self.user_controller.get_all_users())
+            exams_count = len(self.exam_controller.get_all_exams())
+            
+            try:
+                attendances_count = len(self.attendance_controller.get_all_attendance())
+            except:
+                attendances_count = 0
+        else:
+            # Candidate chỉ cần API liên quan đến kỳ thi của họ
+            users_count = 1  # Chỉ họ
+            exams_count = len(self.exam_controller.get_my_exams())
+            
+            # Candidate không cần thống kê điểm danh tổng thể
+            attendances_count = 0
+        
         # Users stat
         users_box = QFrame()
         users_box.setObjectName("users-box")
         users_box.setProperty("class", "stat-box")
         users_layout = QVBoxLayout(users_box)
         
-        users_value = QLabel("12")
+        if is_admin:
+            users_value = QLabel(str(users_count))
+            users_label = QLabel("Người dùng")
+        else:
+            # Đối với candidate, hiển thị thông tin cá nhân
+            users_value = QLabel("1")
+            users_label = QLabel("Tài khoản")
+        
         users_value.setProperty("class", "stat-value")
         users_value.setAlignment(Qt.AlignCenter)
-        
-        users_label = QLabel("Người dùng")
         users_label.setProperty("class", "stat-label")
         users_label.setAlignment(Qt.AlignCenter)
         
@@ -184,11 +211,15 @@ class DashboardScreen(QWidget):
         exams_box.setProperty("class", "stat-box")
         exams_layout = QVBoxLayout(exams_box)
         
-        exams_value = QLabel("8")
+        exams_value = QLabel(str(exams_count))
         exams_value.setProperty("class", "stat-value")
         exams_value.setAlignment(Qt.AlignCenter)
         
-        exams_label = QLabel("Kỳ thi")
+        if is_admin:
+            exams_label = QLabel("Kỳ thi")
+        else:
+            exams_label = QLabel("Kỳ thi của tôi")
+        
         exams_label.setProperty("class", "stat-label")
         exams_label.setAlignment(Qt.AlignCenter)
         
@@ -201,28 +232,37 @@ class DashboardScreen(QWidget):
         attendance_box.setProperty("class", "stat-box")
         attendance_layout = QVBoxLayout(attendance_box)
         
-        attendance_value = QLabel("45")
+        if is_admin:
+            attendance_value = QLabel(str(attendances_count))
+            attendance_label = QLabel("Điểm danh")
+        else:
+            # Chưa có API để lấy số lượng điểm danh của candidate
+            attendance_value = QLabel("--")
+            attendance_label = QLabel("Điểm danh của tôi")
+        
         attendance_value.setProperty("class", "stat-value")
         attendance_value.setAlignment(Qt.AlignCenter)
-        
-        attendance_label = QLabel("Điểm danh")
         attendance_label.setProperty("class", "stat-label")
         attendance_label.setAlignment(Qt.AlignCenter)
         
         attendance_layout.addWidget(attendance_value)
         attendance_layout.addWidget(attendance_label)
         
-        # Monitoring stat
+        # Monitoring stat - chỉ hiển thị cho admin
         monitoring_box = QFrame()
         monitoring_box.setObjectName("monitoring-box")
         monitoring_box.setProperty("class", "stat-box")
         monitoring_layout = QVBoxLayout(monitoring_box)
         
-        monitoring_value = QLabel("20")
+        monitoring_value = QLabel("--")
         monitoring_value.setProperty("class", "stat-value")
         monitoring_value.setAlignment(Qt.AlignCenter)
         
-        monitoring_label = QLabel("Sự kiện")
+        if is_admin:
+            monitoring_label = QLabel("Sự kiện")
+        else:
+            monitoring_label = QLabel("Thông báo")
+        
         monitoring_label.setProperty("class", "stat-label")
         monitoring_label.setAlignment(Qt.AlignCenter)
         
@@ -240,11 +280,12 @@ class DashboardScreen(QWidget):
     def initialize_panels(self):
         # Check user role
         is_admin = self.auth_controller.is_admin()
+        user = self.auth_controller.get_current_user()
         
         if is_admin:
-            # Admin panels
+            # Admin panels với đầy đủ quyền quản trị
             # User Management
-            user_panel = UserManagementPanel(self.user_controller)
+            user_panel = UserManagementPanel(self.user_controller, is_admin=True)
             self.tab_widget.addTab(user_panel, "Quản lý người dùng")
             
             # Exam Management
@@ -255,36 +296,79 @@ class DashboardScreen(QWidget):
             attendance_panel = AttendancePanel(
                 self.attendance_controller, 
                 self.user_controller,
-                self.exam_controller
+                self.exam_controller,
+                is_admin=True
             )
             self.tab_widget.addTab(attendance_panel, "Quản lý điểm danh")
             
-            # Monitoring
+            # Monitoring - Chỉ admin mới được quyền giám sát
             monitoring_panel = MonitoringPanel()
             self.tab_widget.addTab(monitoring_panel, "Giám sát hệ thống")
+            
+            # Thêm tab thông tin cá nhân cho admin
+            profile_panel = UserManagementPanel(
+                self.user_controller, 
+                is_admin=False, 
+                user_id=user.user_id,
+                is_personal_profile=True  # Thêm tham số này để panel biết gọi API profile cho admin
+            )
+            self.tab_widget.addTab(profile_panel, "Hồ sơ của tôi")
         else:
-            # Candidate panels
-            # My Exams
+            # Candidate panels - Giới hạn quyền
+            # My Exams - Sử dụng CandidateExamPanel mới để chỉ gọi API my-exams
+            my_exams_panel = CandidateExamPanel(self.exam_controller)
+            self.tab_widget.addTab(my_exams_panel, "Kỳ thi của tôi")
+            
+            # Attendance Panel - Vẫn giữ để candidate có thể xem thông tin điểm danh
+            # Truyền tham số is_candidate=True để panel biết chỉ gọi API liên quan đến candidate
             attendance_panel = AttendancePanel(
                 self.attendance_controller, 
                 self.user_controller,
                 self.exam_controller,
-                is_admin=False
+                is_admin=False,
+                is_candidate=True  # Thêm tham số này để panel biết chỉ gọi API cho candidate
             )
-            self.tab_widget.addTab(attendance_panel, "Kỳ thi của tôi")
+            self.tab_widget.addTab(attendance_panel, "Điểm danh của tôi")
             
-            # My Profile
-            user = self.auth_controller.get_current_user()
+            # My Profile - Chỉ cần xem thông tin cá nhân
             profile_panel = UserManagementPanel(
                 self.user_controller, 
                 is_admin=False, 
-                user_id=user.user_id
+                user_id=user.user_id,
+                is_personal_profile=True  # Thêm tham số này để panel biết chỉ gọi API cho profile cá nhân
             )
             self.tab_widget.addTab(profile_panel, "Hồ sơ của tôi")
     
     def load_data(self):
+        # Refresh the header with current user info
+        self.refresh_header()
+        
         # Update data in all tabs
         for i in range(self.tab_widget.count()):
             widget = self.tab_widget.widget(i)
             if hasattr(widget, 'load_data'):
                 widget.load_data()
+    
+    def refresh_header(self):
+        # Remove the old header
+        if hasattr(self, 'header_frame'):
+            old_layout = self.layout()
+            old_layout.removeWidget(self.header_frame)
+            self.header_frame.deleteLater()
+        
+        # Create a new header with updated user info
+        self.header_frame = QFrame()
+        self.header_frame.setObjectName("header-frame")
+        self.header_frame.setStyleSheet("""
+            #header-frame {
+                background-color: white;
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        header_layout = self.create_header()
+        self.header_frame.setLayout(header_layout)
+        
+        # Add it back to the main layout at the top
+        main_layout = self.layout()
+        main_layout.insertWidget(0, self.header_frame)

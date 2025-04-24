@@ -21,6 +21,8 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(STYLE)
         
         self.init_ui()
+        
+        # Đã loại bỏ việc gọi phương thức attempt_auto_login() ở đây
     
     def init_ui(self):
         # Set window properties
@@ -31,8 +33,8 @@ class MainWindow(QMainWindow):
         self.stacked_widget = QStackedWidget()
         self.setCentralWidget(self.stacked_widget)
         
-        # Create login screen
-        self.login_screen = LoginScreen(self.auth_controller)
+        # Create login screen - truyền thêm user_controller để sử dụng chức năng đăng ký
+        self.login_screen = LoginScreen(self.auth_controller, self.user_controller)
         self.login_screen.login_successful.connect(self.show_dashboard)
         self.stacked_widget.addWidget(self.login_screen)
         
@@ -51,6 +53,13 @@ class MainWindow(QMainWindow):
         
         # Start with login screen
         self.stacked_widget.setCurrentWidget(self.login_screen)
+    
+    def attempt_auto_login(self):
+        """Thử tự động đăng nhập nếu có token hợp lệ và thông tin người dùng đã lưu"""
+        if self.auth_controller.is_logged_in():
+            # Nếu đã có token hợp lệ và thông tin người dùng, tự động chuyển đến dashboard
+            self.show_dashboard()
+            self.status_label.setText("Đã đăng nhập tự động từ phiên làm việc trước")
     
     def create_menu_bar(self):
         # Create menu bar
@@ -113,15 +122,20 @@ class MainWindow(QMainWindow):
         toolbar.addAction(refresh_action)
     
     def show_dashboard(self):
-        # Initialize dashboard if not exist
-        if not self.dashboard_screen:
-            self.dashboard_screen = DashboardScreen(
-                self.auth_controller,
-                self.user_controller,
-                self.exam_controller,
-                self.attendance_controller
-            )
-            self.stacked_widget.addWidget(self.dashboard_screen)
+        # Always create a new dashboard screen when someone logs in
+        # to ensure all components are updated with the new user's data
+        if self.dashboard_screen:
+            self.stacked_widget.removeWidget(self.dashboard_screen)
+            self.dashboard_screen.deleteLater()
+            
+        # Create a fresh dashboard with the current controllers
+        self.dashboard_screen = DashboardScreen(
+            self.auth_controller,
+            self.user_controller,
+            self.exam_controller, 
+            self.attendance_controller
+        )
+        self.stacked_widget.addWidget(self.dashboard_screen)
         
         # Switch to dashboard
         self.stacked_widget.setCurrentWidget(self.dashboard_screen)
@@ -151,8 +165,35 @@ class MainWindow(QMainWindow):
             )
             
             if reply == QMessageBox.Yes:
+                # Đăng xuất từ auth_controller
                 self.auth_controller.logout()
+                
+                # Đảm bảo ApiService cũng được khởi tạo lại
+                from app.utils.api_service import ApiService
+                ApiService._instance = None
+                
+                # Tạo lại các controller để đảm bảo không còn dữ liệu cũ
+                self.auth_controller = type(self.auth_controller)()  # Tạo lại instance từ class hiện tại
+                self.user_controller = UserController()
+                self.exam_controller = ExamController()
+                self.attendance_controller = AttendanceController()
+                
+                # Tạo lại login_screen để sử dụng controller mới
+                self.login_screen = LoginScreen(self.auth_controller, self.user_controller)
+                self.login_screen.login_successful.connect(self.show_dashboard)
+                
+                # Xóa dashboard_screen hiện tại để tạo mới khi đăng nhập lại
+                if self.dashboard_screen:
+                    self.stacked_widget.removeWidget(self.dashboard_screen)
+                    self.dashboard_screen.deleteLater()
+                    self.dashboard_screen = None
+                
+                # Thêm login_screen mới vào stacked_widget
+                self.stacked_widget.removeWidget(self.login_screen)
+                self.stacked_widget.addWidget(self.login_screen)
                 self.stacked_widget.setCurrentWidget(self.login_screen)
+                
+                # Cập nhật UI
                 self.setWindowTitle("Hệ thống Quản lý Điểm danh")
                 self.logout_action.setEnabled(False)
                 self.user_action.setText("Đăng nhập")

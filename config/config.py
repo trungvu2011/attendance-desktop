@@ -12,10 +12,13 @@ class Config:
     
     # User Endpoints
     USERS_URL = f"{API_BASE_URL}/users"
-    USER_PROFILE_URL = f"{API_BASE_URL}/user/profile"
+    USER_PROFILE_URL = f"{API_BASE_URL}/user/profile"  # URL cho API profile - đã xác nhận là chính xác
+    USER_ALL_URL = f"{API_BASE_URL}/user/all"
+    USER_REGISTER_URL = f"{API_BASE_URL}/user/register"
     
     # Exam Endpoints
-    EXAMS_URL = f"{API_BASE_URL}/exams"
+    EXAMS_URL = f"{API_BASE_URL}/exam"
+    MY_EXAMS_URL = f"{API_BASE_URL}/exam/my-exams"
     
     # Schedule Endpoints
     SCHEDULES_URL = f"{API_BASE_URL}/schedules"

@@ -16,11 +16,17 @@ class User:
         Hỗ trợ cả hai format từ API đăng nhập và API users
         """
         # Hỗ trợ cả các định dạng id khác nhau
-        user_id = data.get('userId') or data.get('id')
-        # Hỗ trợ cả định dạng birthDate và birth
-        birth_date = data.get('birth') or data.get('birthDate')
-        # Hỗ trợ cả định dạng citizenId
-        citizen_id = data.get('citizenId')
+        user_id = data.get('userId') or data.get('id') or data.get('user_id')
+        
+        # Hỗ trợ cả định dạng birthDate, birth và birth_date
+        birth_date = data.get('birth') or data.get('birthDate') or data.get('birth_date')
+        
+        # Hỗ trợ cả định dạng citizenId và citizen_id
+        citizen_id = data.get('citizenId') or data.get('citizen_id')
+        
+        # In ra log để debug
+        print(f"Parsing user data: {data}")
+        print(f"Extracted: user_id={user_id}, name={data.get('name')}, birth_date={birth_date}, citizen_id={citizen_id}")
         
         return User(
             user_id=user_id,

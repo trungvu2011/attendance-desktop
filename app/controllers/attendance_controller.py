@@ -4,7 +4,7 @@ from config.config import Config
 
 class AttendanceController:
     def __init__(self):
-        self.api_service = ApiService()
+        self.api_service = ApiService.get_instance()
     
     def get_all_attendance(self):
         """Get all attendance records from the system"""

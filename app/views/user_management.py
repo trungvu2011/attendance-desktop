@@ -9,11 +9,12 @@ from app.models.user import User
 from config.config import Config
 
 class UserManagementPanel(QWidget):
-    def __init__(self, user_controller, is_admin=True, user_id=None):
+    def __init__(self, user_controller, is_admin=True, user_id=None, is_personal_profile=False):
         super().__init__()
         self.user_controller = user_controller
         self.is_admin = is_admin
         self.user_id = user_id
+        self.is_personal_profile = is_personal_profile  # Flag để xác định đây là profile cá nhân
         self.users = []
         
         self.init_ui()
@@ -222,20 +223,55 @@ class UserManagementPanel(QWidget):
             self.users = self.user_controller.get_all_users()
             self.populate_user_table()
         else:
-            # Candidate view - load only current user
+            # Candidate view hoặc profile cá nhân - chỉ tải thông tin người dùng hiện tại
             if self.user_id:
-                # Thử lấy thông tin profile từ API trước
-                user_profile = self.user_controller.get_current_user_profile()
+                print(f"==== Đang tải thông tin người dùng với ID: {self.user_id} ====")
+                print(f"Is personal profile: {self.is_personal_profile}")
                 
-                # Nếu API không trả về kết quả, sử dụng API lấy user theo ID
-                if not user_profile:
+                if self.is_personal_profile:
+                    # Nếu là profile cá nhân, thử lấy thông tin từ nhiều nguồn
+                    # Ưu tiên 1: API profile
+                    print("Đang thử lấy thông tin từ API profile...")
+                    user_profile = self.user_controller.get_current_user_profile()
+                    
+                    if user_profile:
+                        print(f"Đã lấy được thông tin profile từ API: {user_profile.name}, {user_profile.email}")
+                    else:
+                        print("Không lấy được thông tin từ API profile")
+                    
+                    # Ưu tiên 2: Lấy theo user_id
+                    if not user_profile:
+                        print(f"Đang thử lấy thông tin theo ID: {self.user_id}")
+                        user_profile = self.user_controller.get_user_by_id(self.user_id)
+                        if user_profile:
+                            print(f"Đã lấy được thông tin theo ID: {user_profile.name}, {user_profile.email}")
+                        else:
+                            print("Không lấy được thông tin theo ID")
+                    
+                    # Ưu tiên 3: Lấy từ auth_controller
+                    if not user_profile:
+                        print("Đang thử lấy thông tin từ auth_controller")
+                        from app.controllers.auth_controller import AuthController
+                        auth_controller = AuthController()
+                        user_profile = auth_controller.get_current_user()
+                        if user_profile:
+                            print(f"Đã lấy được thông tin từ auth_controller: {user_profile.name}, {user_profile.email}")
+                        else:
+                            print("Không lấy được thông tin từ auth_controller")
+                    
+                    if user_profile:
+                        print("Cập nhật giao diện profile với dữ liệu đã lấy được")
+                        self.update_profile_view(user_profile)
+                    else:
+                        print("KHÔNG THỂ LẤY THÔNG TIN NGƯỜI DÙNG TỪ BẤT KỲ NGUỒN NÀO")
+                        self.add_offline_indicator("⚠️ Không thể tải thông tin người dùng")
+                else:
+                    # Trường hợp khác, lấy thông tin theo ID
                     user_profile = self.user_controller.get_user_by_id(self.user_id)
-                
-                if user_profile:
-                    self.update_profile_view(user_profile)
-                    # Hiển thị thông báo khi không thể kết nối đến API
-                    if not self.user_controller.get_current_user_profile():
-                        self.add_offline_indicator()
+                    if user_profile:
+                        self.update_profile_view(user_profile)
+                    else:
+                        self.add_offline_indicator("⚠️ Không thể tải thông tin người dùng theo ID")
     
     def filter_users(self):
         if not self.is_admin:
@@ -329,29 +365,36 @@ class UserManagementPanel(QWidget):
         self.citizen_id_value.setText(user.citizen_id)
         self.role_value.setText("Quản trị viên" if user.role == "ADMIN" else "Thí sinh")
     
-    def add_offline_indicator(self):
+    def add_offline_indicator(self, message="⚠️ Đang xem dữ liệu ngoại tuyến"):
         """Thêm chỉ báo khi không thể kết nối đến API profile"""
-        # Tạo indicator nếu chưa tồn tại
-        if not hasattr(self, 'offline_indicator'):
-            self.offline_indicator = QLabel("⚠️ Đang xem dữ liệu ngoại tuyến")
-            self.offline_indicator.setStyleSheet("""
-                background-color: #fff3cd;
-                color: #856404;
-                border: 1px solid #ffeeba;
-                border-radius: 4px;
-                padding: 8px;
-                margin-top: 10px;
-                font-weight: bold;
-            """)
-            
-            # Thêm vào layout của profile frame
-            for i in range(self.layout().count()):
-                item = self.layout().itemAt(i)
-                if isinstance(item.widget(), QFrame) and item.widget().objectName() == "profile-frame":
-                    profile_frame = item.widget()
-                    profile_layout = profile_frame.layout()
-                    profile_layout.insertWidget(profile_layout.count() - 1, self.offline_indicator)
-                    break
+        # Xóa indicator cũ nếu đã tồn tại
+        if hasattr(self, 'offline_indicator'):
+            try:
+                self.offline_indicator.deleteLater()
+            except:
+                pass
+        
+        # Tạo indicator mới
+        self.offline_indicator = QLabel(message)
+        self.offline_indicator.setStyleSheet("""
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 10px;
+            font-weight: bold;
+        """)
+        
+        # Thêm vào layout của profile frame
+        for i in range(self.layout().count()):
+            item = self.layout().itemAt(i)
+            if isinstance(item.widget(), QFrame) and item.widget().objectName() == "profile-frame":
+                profile_frame = item.widget()
+                profile_layout = profile_frame.layout()
+                # Thêm vào vị trí trước nút Chỉnh sửa
+                profile_layout.insertWidget(profile_layout.count() - 1, self.offline_indicator)
+                break
     
     def show_add_user_dialog(self):
         dialog = UserDialog(parent=self)
@@ -360,12 +403,13 @@ class UserManagementPanel(QWidget):
             valid, message = self.user_controller.validate_user(user)
             
             if valid:
-                created_user = self.user_controller.create_user(user)
+                # Sử dụng register_user thay vì create_user để gọi đúng API endpoint
+                created_user = self.user_controller.register_user(user)
                 if created_user:
                     QMessageBox.information(self, "Thành công", "Thêm người dùng thành công.")
                     self.load_users()
                 else:
-                    QMessageBox.warning(self, "Lỗi", "Không thể thêm người dùng.")
+                    QMessageBox.warning(self, "Lỗi", "Không thể thêm người dùng. Vui lòng kiểm tra thông tin và thử lại.")
             else:
                 QMessageBox.warning(self, "Lỗi xác thực", message)
     

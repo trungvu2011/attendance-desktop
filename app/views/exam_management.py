@@ -41,9 +41,9 @@ class ExamManagementPanel(QWidget):
         
         # Exam table
         self.exam_table = QTableWidget()
-        self.exam_table.setColumnCount(6)
+        self.exam_table.setColumnCount(8)  # Changed from 6 to 8 to add room and schedule columns
         self.exam_table.setHorizontalHeaderLabels(
-            ["ID", "Name", "Subject", "Semester", "Exam Date", "Actions"]
+            ["ID", "Name", "Subject", "Semester", "Exam Date", "Room", "Schedule", "Actions"]
         )
         self.exam_table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.exam_table.horizontalHeader().setStretchLastSection(True)
@@ -70,6 +70,13 @@ class ExamManagementPanel(QWidget):
             self.exam_table.setItem(row, 3, QTableWidgetItem(exam.semester))
             self.exam_table.setItem(row, 4, QTableWidgetItem(exam.exam_date))
             
+            # Thêm cột Room và Schedule
+            room_display = exam.get_room_display() if hasattr(exam, 'get_room_display') else ""
+            schedule_name = exam.get_schedule_name() if hasattr(exam, 'get_schedule_name') else ""
+            
+            self.exam_table.setItem(row, 5, QTableWidgetItem(room_display))
+            self.exam_table.setItem(row, 6, QTableWidgetItem(schedule_name))
+            
             # Action buttons
             action_widget = QWidget()
             action_layout = QHBoxLayout()
@@ -89,7 +96,7 @@ class ExamManagementPanel(QWidget):
             action_layout.addWidget(view_schedules_btn)
             
             action_widget.setLayout(action_layout)
-            self.exam_table.setCellWidget(row, 5, action_widget)
+            self.exam_table.setCellWidget(row, 7, action_widget)  # Changed from 5 to 7
     
     def show_add_exam_dialog(self):
         dialog = ExamDialog(parent=self)
