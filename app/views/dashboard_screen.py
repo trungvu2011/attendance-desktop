@@ -83,12 +83,11 @@ class DashboardScreen(QWidget):
         # Welcome message
         welcome_label = QLabel(f"Xin chào, {user.name}")
         welcome_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #1a73e8;")
-        
-        # Role and date
+          # Role and date
         import datetime
         today = datetime.datetime.now().strftime("%d/%m/%Y")
         
-        role_label = QLabel(f"Vai trò: {user.role} | Ngày: {today}")
+        role_label = QLabel(f"Vai trò: Thí sinh | Ngày: {today}")
         role_label.setStyleSheet("font-style: italic; color: #555;")
         
         user_info_layout.addWidget(welcome_label)

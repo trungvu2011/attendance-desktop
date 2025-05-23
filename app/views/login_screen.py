@@ -118,19 +118,7 @@ class LoginScreen(QWidget):
         register_link.setTextInteractionFlags(Qt.TextBrowserInteraction)
         register_link.linkActivated.connect(self.show_register_dialog)
         register_layout.addWidget(register_link)
-        
-        # Demo account info
-        demo_label = QLabel("Tài khoản demo:")
-        demo_label.setAlignment(Qt.AlignCenter)
-        
-        demo_admin = QLabel("Admin: admin@example.com / admin")
-        demo_admin.setAlignment(Qt.AlignCenter)
-        demo_admin.setStyleSheet("color: #666;")
-        
-        demo_user = QLabel("User: user@example.com / user")
-        demo_user.setAlignment(Qt.AlignCenter)
-        demo_user.setStyleSheet("color: #666;")
-        
+                
         # Add to login layout
         login_layout.addLayout(form_layout)
         login_layout.addLayout(remember_layout)
@@ -138,9 +126,6 @@ class LoginScreen(QWidget):
         login_layout.addSpacing(10)
         login_layout.addLayout(register_layout)
         login_layout.addSpacing(10)
-        login_layout.addWidget(demo_label)
-        login_layout.addWidget(demo_admin)
-        login_layout.addWidget(demo_user)
         login_layout.addStretch()
         
         # Add frames to main layout
@@ -173,41 +158,7 @@ class LoginScreen(QWidget):
             # Đăng nhập thành công, phát tín hiệu để MainWindow cập nhật giao diện
             self.login_successful.emit()
         else:
-            # Sử dụng thông tin xác thực demo cho việc kiểm thử
-            if email == "admin@example.com" and password == "admin":
-                from app.models.user import User
-                # Tạo người dùng admin mẫu
-                user = User(
-                    user_id=1,
-                    name="Admin User",
-                    email="admin@example.com",
-                    birth_date="1990-01-01",
-                    citizen_id="123456789012",
-                    role="ADMIN"
-                )
-                # Đảm bảo không có dữ liệu người dùng cũ trước khi gán người dùng mới
-                self.auth_controller.current_user = None
-                # Gán người dùng mới
-                self.auth_controller.current_user = user
-                self.login_successful.emit()
-            elif email == "user@example.com" and password == "user":
-                from app.models.user import User
-                # Tạo người dùng thí sinh mẫu
-                user = User(
-                    user_id=2,
-                    name="Test User",
-                    email="user@example.com",
-                    birth_date="1995-05-05",
-                    citizen_id="987654321098",
-                    role="CANDIDATE"
-                )
-                # Đảm bảo không có dữ liệu người dùng cũ trước khi gán người dùng mới
-                self.auth_controller.current_user = None
-                # Gán người dùng mới
-                self.auth_controller.current_user = user
-                self.login_successful.emit()
-            else:
-                QMessageBox.warning(self, "Lỗi đăng nhập", "Email hoặc mật khẩu không đúng.")
+            QMessageBox.warning(self, "Lỗi đăng nhập", "Email hoặc mật khẩu không đúng.")
     
     def show_forgot_password(self):
         QMessageBox.information(self, "Quên mật khẩu", "Chức năng đặt lại mật khẩu chưa được triển khai trong phiên bản demo này.")
@@ -276,13 +227,8 @@ class RegisterDialog(QDialog):
         self.birth_input.setDate(QDate.currentDate().addYears(-20))  # Default to 20 years ago
         self.birth_input.setDisplayFormat("dd/MM/yyyy")
         form_layout.addRow(birth_label, self.birth_input)
-        
-        # Role selection
-        role_label = QLabel("Vai trò:")
-        self.role_combo = QComboBox()
-        self.role_combo.addItem("Thí sinh", Config.ROLE_CANDIDATE)
-        self.role_combo.addItem("Quản trị viên", Config.ROLE_ADMIN)
-        form_layout.addRow(role_label, self.role_combo)
+          # Role is always set to Candidate
+        self.role_value = Config.ROLE_CANDIDATE
         
         # Buttons
         button_layout = QHBoxLayout()
@@ -300,7 +246,6 @@ class RegisterDialog(QDialog):
         layout.addLayout(form_layout)
         layout.addSpacing(10)
         layout.addLayout(button_layout)
-    
     def register(self):
         # Get form data
         name = self.name_input.text()
@@ -309,7 +254,7 @@ class RegisterDialog(QDialog):
         confirm = self.confirm_input.text()
         citizen_id = self.citizen_input.text()
         birth_date = self.birth_input.date().toString("yyyy-MM-dd")
-        role = self.role_combo.currentData()
+        role = self.role_value  # Always set to CANDIDATE
         
         # Validate fields
         if not all([name, email, password, confirm, citizen_id]):

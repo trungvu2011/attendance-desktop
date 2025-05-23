@@ -1,2 +1,8 @@
 PyQt5==5.15.6
 requests==2.27.1
+opencv-python==4.7.0.72
+numpy==1.24.3
+pillow==9.5.0
+Flask==2.3.2
+dlib
+face_recognition

@@ -87,6 +87,7 @@ QLineEdit, QDateEdit, QComboBox {
     border: 1px solid #ddd;
     border-radius: 4px;
     padding: 8px;
+    min-height: 35px;
     background-color: white;
     selection-background-color: #cce5ff;
 }

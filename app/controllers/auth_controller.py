@@ -98,10 +98,7 @@ class AuthController:
             self.refresh_user_info()
             
         return self.current_user
-    
     def is_admin(self):
         """Check if current user is admin"""
-        if not self.current_user:
-            return False
-        from config.config import Config
-        return self.current_user.role == Config.ROLE_ADMIN
+        # Always return False to ensure only candidate view is shown
+        return False

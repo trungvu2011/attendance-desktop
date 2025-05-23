@@ -9,10 +9,10 @@ from app.models.user import User
 from config.config import Config
 
 class UserManagementPanel(QWidget):
-    def __init__(self, user_controller, is_admin=True, user_id=None, is_personal_profile=False):
+    def __init__(self, user_controller, is_admin=False, user_id=None, is_personal_profile=False):
         super().__init__()
         self.user_controller = user_controller
-        self.is_admin = is_admin
+        self.is_admin = is_admin  # Kept for backward compatibility but always False
         self.user_id = user_id
         self.is_personal_profile = is_personal_profile  # Flag để xác định đây là profile cá nhân
         self.users = []
@@ -69,8 +69,8 @@ class UserManagementPanel(QWidget):
             filter_frame = QFrame()
             filter_frame.setObjectName("filter-frame")
             filter_frame.setMaximumHeight(80)
-            filter_frame.setStyleSheet("""
-                #filter-frame {
+            filter_frame.setMinimumHeight(35)
+            filter_frame.setStyleSheet("""                #filter-frame {
                     background-color: white;
                     border-radius: 8px;
                     padding: 10px;
@@ -78,24 +78,15 @@ class UserManagementPanel(QWidget):
                 }
             """)
             filter_layout = QHBoxLayout(filter_frame)
-            
-            search_label = QLabel("Tìm kiếm:")
+            self.search_label = QLabel("Tìm kiếm:")
             self.search_input = QLineEdit()
             self.search_input.setPlaceholderText("Nhập tên hoặc email...")
+            self.search_input.setMinimumHeight(35)  # Increased height
             self.search_input.textChanged.connect(self.filter_users)
             
-            role_filter_label = QLabel("Lọc theo vai trò:")
-            self.role_filter = QComboBox()
-            self.role_filter.addItem("Tất cả", None)
-            self.role_filter.addItem("Admin", "ADMIN")
-            self.role_filter.addItem("Thí sinh", "CANDIDATE")
-            self.role_filter.currentIndexChanged.connect(self.filter_users)
-            
-            filter_layout.addWidget(search_label)
+            filter_layout.addWidget(self.search_label)
             filter_layout.addWidget(self.search_input)
-            filter_layout.addSpacing(20)
-            filter_layout.addWidget(role_filter_label)
-            filter_layout.addWidget(self.role_filter)
+            filter_layout.addStretch()
             
             main_layout.addWidget(filter_frame)
             
@@ -278,7 +269,6 @@ class UserManagementPanel(QWidget):
             return
             
         search_text = self.search_input.text().lower()
-        role_filter = self.role_filter.currentData()
         
         for row in range(self.user_table.rowCount()):
             should_show = True
@@ -289,12 +279,6 @@ class UserManagementPanel(QWidget):
             
             if search_text and search_text not in name and search_text not in email:
                 should_show = False
-            
-            # Check role filter
-            if role_filter:
-                role = self.user_table.item(row, 5).text()
-                if role != role_filter:
-                    should_show = False
             
             # Show/hide row
             self.user_table.setRowHidden(row, not should_show)
@@ -347,7 +331,6 @@ class UserManagementPanel(QWidget):
             reset_pwd_action = QAction("Đặt lại mật khẩu", more_btn)
             reset_pwd_action.triggered.connect(lambda checked, u=user: self.reset_password(u))
             more_menu.addAction(reset_pwd_action)
-            
             more_btn.setMenu(more_menu)
             more_btn.setPopupMode(QToolButton.InstantPopup)
             
@@ -363,7 +346,7 @@ class UserManagementPanel(QWidget):
         self.email_value.setText(user.email)
         self.birth_date_value.setText(user.birth_date)
         self.citizen_id_value.setText(user.citizen_id)
-        self.role_value.setText("Quản trị viên" if user.role == "ADMIN" else "Thí sinh")
+        self.role_value.setText("Thí sinh")
     
     def add_offline_indicator(self, message="⚠️ Đang xem dữ liệu ngoại tuyến"):
         """Thêm chỉ báo khi không thể kết nối đến API profile"""
@@ -564,22 +547,16 @@ class UserDialog(QDialog):
         self.birth_date_input.setDate(QDate.currentDate())
         self.birth_date_input.setMinimumHeight(35)
         form_layout.addRow(birth_date_label, self.birth_date_input)
-        
-        # Citizen ID field
+          # Citizen ID field
         citizen_id_label = QLabel("CCCD:")
         self.citizen_id_input = QLineEdit()
         self.citizen_id_input.setPlaceholderText("Nhập số CCCD (12 chữ số)")
         self.citizen_id_input.setMinimumHeight(35)
         form_layout.addRow(citizen_id_label, self.citizen_id_input)
         
-        # Role field (only for admin)
-        if not self.edit_profile:
-            role_label = QLabel("Vai trò:")
-            self.role_combo = QComboBox()
-            self.role_combo.addItem("Quản trị viên", Config.ROLE_ADMIN)
-            self.role_combo.addItem("Thí sinh", Config.ROLE_CANDIDATE) 
-            self.role_combo.setMinimumHeight(35)
-            form_layout.addRow(role_label, self.role_combo)
+        # Role is always set to Candidate
+        # Hidden role field - not shown to the user
+        self.role_combo = None
         
         main_layout.addWidget(form_frame)
         
@@ -616,13 +593,8 @@ class UserDialog(QDialog):
                 # If parsing fails, use current date
                 self.birth_date_input.setDate(QDate.currentDate())
         
-        self.citizen_id_input.setText(self.user.citizen_id)
-        
-        # Set role if available and not in edit profile mode
-        if not self.edit_profile and self.user.role:
-            index = self.role_combo.findData(self.user.role)
-            if index >= 0:
-                self.role_combo.setCurrentIndex(index)
+        self.citizen_id_input.setText(self.user.citizen_id)        
+        # Role is always CANDIDATE, no need to set it in combo box
     
     def get_user(self):
         # Create a new user or update existing one
@@ -631,13 +603,8 @@ class UserDialog(QDialog):
         birth_date = self.birth_date_input.date().toString("yyyy-MM-dd")
         citizen_id = self.citizen_id_input.text()
         
-        if self.edit_profile:
-            # In edit profile mode, keep existing role
-            role = self.user.role
-        else:
-            # In admin mode, get role from combo box
-            role = self.role_combo.currentData()
-        
+        # Always set role to CANDIDATE
+        role = Config.ROLE_CANDIDATE
         if self.user:
             # Update existing user
             user = User(

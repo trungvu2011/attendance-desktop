@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
         # Create status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_label = QLabel("Sẵn sàng")
+        self.status_label = QLabel("Sẵn sàng")        
         self.status_bar.addWidget(self.status_label)
         
         # Start with login screen
@@ -74,6 +74,12 @@ class MainWindow(QMainWindow):
         self.logout_action.triggered.connect(self.logout)
         self.logout_action.setEnabled(False)
         file_menu.addAction(self.logout_action)
+        
+        # Attendance CCCD action
+        self.cccd_attendance_action = QAction("Điểm danh bằng CCCD", self)
+        self.cccd_attendance_action.setShortcut("Ctrl+D")
+        self.cccd_attendance_action.triggered.connect(self.show_cccd_attendance_dialog)
+        file_menu.addAction(self.cccd_attendance_action)
         
         # Exit action
         exit_action = QAction("Thoát", self)
@@ -139,10 +145,9 @@ class MainWindow(QMainWindow):
         
         # Switch to dashboard
         self.stacked_widget.setCurrentWidget(self.dashboard_screen)
-        
-        # Update window title with user role
+          # Update window title - always show role as "Thí sinh" (Candidate)
         user = self.auth_controller.get_current_user()
-        role_display = "Quản trị viên" if user.role == "ADMIN" else "Thí sinh"
+        role_display = "Thí sinh"
         self.setWindowTitle(f"Hệ thống Quản lý Điểm danh - {role_display}: {user.name}")
         
         # Enable logout button
@@ -255,3 +260,38 @@ class MainWindow(QMainWindow):
             event.accept()
         else:
             event.ignore()
+    
+    def show_cccd_attendance_dialog(self):
+        """Show the CCCD attendance dialog"""
+        from app.views.attendance_cccd_scanner import AttendanceCCCDScannerDialog
+        
+        # Get users from controller
+        users = []
+        if hasattr(self, 'user_controller'):
+            users = self.user_controller.get_all_users()
+        
+        # Get exams from controller
+        exams = []
+        if hasattr(self, 'exam_controller'):
+            exams = self.exam_controller.get_all_exams()
+        
+        # Create and show dialog
+        dialog = AttendanceCCCDScannerDialog(self, None, users)
+        dialog.attendance_recorded.connect(self.on_cccd_attendance_recorded)
+        dialog.exec_()
+    
+    def on_cccd_attendance_recorded(self, user_id, exam_id, timestamp):
+        """Handle attendance recorded from CCCD scanner"""
+        # Ghi nhận điểm danh vào hệ thống qua attendance_controller
+        result = self.attendance_controller.mark_attendance_with_cccd(user_id, exam_id or None)
+        if result:
+            msg = f"Đã điểm danh thành công cho user {user_id} qua CCCD và nhận diện khuôn mặt."
+            self.status_label.setText(msg)
+            QMessageBox.information(self, "Điểm danh thành công", msg)
+        else:
+            msg = f"Lỗi khi ghi nhận điểm danh cho user {user_id}."
+            self.status_label.setText(msg)
+            QMessageBox.warning(self, "Lỗi điểm danh", msg)
+        # Làm mới dashboard nếu đang hiển thị
+        if self.dashboard_screen and self.stacked_widget.currentWidget() == self.dashboard_screen:
+            self.dashboard_screen.load_data()

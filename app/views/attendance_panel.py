@@ -1,8 +1,9 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-                              QPushButton, QTableWidget, QTableWidgetItem,
-                              QComboBox, QDialog, QFormLayout, QMessageBox)
+                             QPushButton, QTableWidget, QTableWidgetItem,
+                             QComboBox, QDialog, QFormLayout, QMessageBox)
 from PyQt5.QtCore import Qt
 from app.models.exam_attendance import ExamAttendance
+from app.views.attendance_cccd_scanner import AttendanceCCCDScannerDialog
 
 class AttendancePanel(QWidget):
     def __init__(self, attendance_controller, user_controller, exam_controller, is_admin=True, auth_controller=None, is_candidate=False):
@@ -29,7 +30,7 @@ class AttendancePanel(QWidget):
         title_label = QLabel(title_text)
         title_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         main_layout.addWidget(title_label)
-        
+
         if self.is_admin:
             # Admin view - full attendance management
             # Filter section
@@ -50,6 +51,21 @@ class AttendancePanel(QWidget):
             self.mark_attendance_btn = QPushButton("Mark Attendance")
             self.mark_attendance_btn.clicked.connect(self.show_mark_attendance_dialog)
             
+            self.mark_face_cccd_btn = QPushButton("Mark with CCCD & Face")
+            self.mark_face_cccd_btn.clicked.connect(self.show_face_cccd_dialog)
+            self.mark_face_cccd_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #34A853;
+                    color: white;
+                    font-weight: bold;
+                    padding: 5px 10px;
+                }
+                QPushButton:hover {
+                    background-color: #2E8B57;
+                }
+            """)
+            
+            filter_layout.addWidget(self.mark_face_cccd_btn)
             filter_layout.addWidget(self.mark_attendance_btn)
             filter_layout.addWidget(self.refresh_btn)
             
@@ -66,10 +82,9 @@ class AttendancePanel(QWidget):
             button_layout.addWidget(self.refresh_btn)
             
             main_layout.addLayout(button_layout)
-        
-        # Attendance table
+          # Attendance table
         self.attendance_table = QTableWidget()
-        headers = ["ID", "Exam", "User", "Check-in Time", "Check-out Time", "Status"]
+        headers = ["ID", "Exam", "Candidate", "Attendance Time", "CCCD Verified", "Face Verified"]
         
         if self.is_admin:
             headers.append("Actions")
@@ -165,15 +180,49 @@ class AttendancePanel(QWidget):
                 if user.user_id == attendance.user_id:
                     user_name = user.name
                     break
+              # Set attendance details - using new API format
+            attendance_id = attendance.attendance_id if hasattr(attendance, 'attendance_id') else (str(getattr(attendance, 'id', 'Unknown')))
+            self.attendance_table.setItem(row, 0, QTableWidgetItem(str(attendance_id)))
             
-            # Set attendance details
-            self.attendance_table.setItem(row, 0, QTableWidgetItem(str(attendance.attendance_id)))
+            # Exam info
+            if hasattr(attendance, 'exam') and isinstance(attendance.exam, dict) and 'name' in attendance.exam:
+                exam_name = attendance.exam['name']
             self.attendance_table.setItem(row, 1, QTableWidgetItem(exam_name))
-            self.attendance_table.setItem(row, 2, QTableWidgetItem(user_name))
-            self.attendance_table.setItem(row, 3, QTableWidgetItem(str(attendance.check_in_time or "")))
-            self.attendance_table.setItem(row, 4, QTableWidgetItem(str(attendance.check_out_time or "")))
-            self.attendance_table.setItem(row, 5, QTableWidgetItem(attendance.status or ""))
             
+            # Candidate info
+            if hasattr(attendance, 'candidate') and isinstance(attendance.candidate, dict) and 'name' in attendance.candidate:
+                user_name = attendance.candidate['name']
+            self.attendance_table.setItem(row, 2, QTableWidgetItem(user_name))
+            
+            # Attendance time
+            attendance_time = ""
+            if hasattr(attendance, 'attendanceTime') and attendance.attendanceTime:
+                attendance_time = attendance.attendanceTime
+            elif hasattr(attendance, 'check_in_time') and attendance.check_in_time:
+                attendance_time = attendance.check_in_time
+                
+            attendance_time_item = QTableWidgetItem(str(attendance_time))
+            self.attendance_table.setItem(row, 3, attendance_time_item)
+            
+            # CCCD Verification status
+            cccd_verified = False
+            if hasattr(attendance, 'citizenCardVerified'):
+                cccd_verified = attendance.citizenCardVerified
+            
+            cccd_item = QTableWidgetItem("✓" if cccd_verified else "✗")
+            cccd_item.setBackground(Qt.green if cccd_verified else Qt.red)
+            cccd_item.setTextAlignment(Qt.AlignCenter)
+            self.attendance_table.setItem(row, 4, cccd_item)
+            
+            # Face Verification status
+            face_verified = False
+            if hasattr(attendance, 'faceVerified'):
+                face_verified = attendance.faceVerified
+            
+            face_item = QTableWidgetItem("✓" if face_verified else "✗")
+            face_item.setBackground(Qt.green if face_verified else Qt.red)
+            face_item.setTextAlignment(Qt.AlignCenter)
+            self.attendance_table.setItem(row, 5, face_item)
             if self.is_admin:
                 # Action buttons for admin
                 action_widget = QWidget()
@@ -189,19 +238,52 @@ class AttendancePanel(QWidget):
                 self.attendance_table.setCellWidget(row, 6, action_widget)
     
     def show_mark_attendance_dialog(self):
+        """Show dialog to mark attendance manually"""
         dialog = MarkAttendanceDialog(self.users, self.exams, parent=self)
         if dialog.exec_() == QDialog.Accepted:
             attendance = dialog.get_attendance()
             
             result = self.attendance_controller.mark_attendance(attendance)
             if result:
-                QMessageBox.information(self, "Success", "Attendance marked successfully.")
+                QMessageBox.information(self, "Success", "Attendance recorded successfully.")
                 self.load_attendance_records()
             else:
-                QMessageBox.warning(self, "Error", "Failed to mark attendance.")
+                QMessageBox.warning(self, "Error", "Failed to record attendance.")
     
+    def show_face_cccd_dialog(self):
+        """Show dialog to mark attendance with CCCD and face recognition"""
+        # Only admin users can mark attendance
+        if not self.is_admin:
+            return
+        
+        # Get the current selected exam from the filter dropdown
+        selected_index = self.exam_filter_combo.currentIndex()
+        exam_id = self.exam_filter_combo.itemData(selected_index)
+        selected_exam = None
+        
+        # Find the selected exam
+        for exam in self.exams:
+            if exam.exam_id == exam_id:
+                selected_exam = exam
+                break
+          # Launch the CCCD scanner dialog
+        dialog = AttendanceCCCDScannerDialog(self, selected_exam, self.users)
+        dialog.attendance_recorded.connect(self.on_face_attendance_recorded)
+        dialog.exec_()
+    
+    def on_face_attendance_recorded(self, user_id, exam_id, timestamp):
+        """Process the attendance recorded by face verification"""
+        # Gọi phương thức API mới theo định dạng JSON mới
+        result = self.attendance_controller.mark_attendance_with_cccd(
+            user_id, exam_id
+        )
+        
+        if result:
+            QMessageBox.information(self, "Thành công", "Điểm danh thành công với xác thực CCCD và khuôn mặt.")
+            self.load_attendance_records()  # Refresh the attendance records
+        
     def edit_attendance(self, attendance):
-        # Dialog to edit attendance record
+        """Show dialog to edit an existing attendance record"""
         dialog = EditAttendanceDialog(attendance, parent=self)
         if dialog.exec_() == QDialog.Accepted:
             updated_attendance = dialog.get_attendance()
@@ -212,7 +294,6 @@ class AttendancePanel(QWidget):
                 self.load_attendance_records()
             else:
                 QMessageBox.warning(self, "Error", "Failed to update attendance.")
-
 
 class MarkAttendanceDialog(QDialog):
     def __init__(self, users, exams, parent=None):
