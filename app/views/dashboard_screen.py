@@ -317,14 +317,14 @@ class DashboardScreen(QWidget):
             # My Exams - Sử dụng CandidateExamPanel mới để chỉ gọi API my-exams
             my_exams_panel = CandidateExamPanel(self.exam_controller)
             self.tab_widget.addTab(my_exams_panel, "Kỳ thi của tôi")
-            
-            # Attendance Panel - Vẫn giữ để candidate có thể xem thông tin điểm danh
+              # Attendance Panel - Vẫn giữ để candidate có thể xem thông tin điểm danh
             # Truyền tham số is_candidate=True để panel biết chỉ gọi API liên quan đến candidate
             attendance_panel = AttendancePanel(
                 self.attendance_controller, 
                 self.user_controller,
                 self.exam_controller,
                 is_admin=False,
+                auth_controller=self.auth_controller,  # Truyền auth_controller để lấy thông tin user hiện tại
                 is_candidate=True  # Thêm tham số này để panel biết chỉ gọi API cho candidate
             )
             self.tab_widget.addTab(attendance_panel, "Điểm danh của tôi")

@@ -32,7 +32,9 @@ class AttendanceController:
         
     def get_attendance_by_user(self, user_id):
         """Get attendance records for a specific user"""
-        result = self.api_service.get(f"{Config.ATTENDANCE_URL}/user/{user_id}")
+        # API endpoint cho điểm danh của candidate: /api/attendance/candidate/{userId}
+        attendance_candidate_url = f"{Config.API_BASE_URL}/attendance/candidate/{user_id}"
+        result = self.api_service.get(attendance_candidate_url)
         if result:
             return [ExamAttendance.from_json(attendance_data) for attendance_data in result]
         return []

@@ -28,7 +28,7 @@ class ExamAttendance:
             user = data.get('candidate', {})
             exam = data.get('exam', {})
             
-            return ExamAttendance(
+            attendance = ExamAttendance(
                 attendance_id=data.get('id'),
                 user=user,
                 exam=exam,
@@ -38,6 +38,14 @@ class ExamAttendance:
                 citizen_card_verified=data.get('citizenCardVerified', False),
                 face_verified=data.get('faceVerified', False)
             )
+            
+            # Also set direct field access for convenience
+            attendance.candidate = user
+            attendance.attendanceTime = data.get('attendanceTime')
+            attendance.citizenCardVerified = data.get('citizenCardVerified', False)
+            attendance.faceVerified = data.get('faceVerified', False)
+            
+            return attendance
         else:
             # Định dạng cũ
             return ExamAttendance(
@@ -46,71 +54,48 @@ class ExamAttendance:
                 exam=data.get('exam'),
                 attendance_time=data.get('attendanceTime'),
                 status=data.get('status'),
-                check_in_time=data.get('checkInTime'),                check_out_time=data.get('checkOutTime'),
+                check_in_time=data.get('checkInTime'),
+                check_out_time=data.get('checkOutTime'),
                 verification_method=data.get('verificationMethod'),
                 verification_data=data.get('verificationData')
             )
     
     def to_json(self):
         """Chuyển đổi đối tượng ExamAttendance thành JSON để gửi lên API"""
-        # Cấu trúc JSON mới
-        data = {}
-        
-        # Thêm thông tin thí sinh
-        candidate_data = {}
-        if self.user_id:
-            candidate_data['userId'] = self.user_id
-        elif isinstance(self.user, dict) and 'userId' in self.user:
-            candidate_data['userId'] = self.user['userId']
-            
-        if isinstance(self.user, dict):
-            if 'name' in self.user:
-                candidate_data['name'] = self.user['name']
-            if 'citizenId' in self.user:
-                candidate_data['citizenId'] = self.user['citizenId']
-        
-        if candidate_data:
-            data['candidate'] = candidate_data
-            
-        # Thêm thông tin kỳ thi
-        exam_data = {}
-        if self.exam_id:
-            exam_data['examId'] = self.exam_id
-        elif isinstance(self.exam, dict) and 'examId' in self.exam:
-            exam_data['examId'] = self.exam['examId']
-            
-        if isinstance(self.exam, dict) and 'name' in self.exam:
-            exam_data['name'] = self.exam['name']
-            
-        if exam_data:
-            data['exam'] = exam_data
-            
-        # Thêm ID cho cập nhật
-        if self.attendance_id:
-            data['id'] = self.attendance_id
-        
-        # Thêm thông tin xác thực
-        data['citizenCardVerified'] = self.citizen_card_verified
-        data['faceVerified'] = self.face_verified
-        
-        # Thêm thời gian điểm danh
-        if self.attendance_time:
-            data['attendanceTime'] = self.attendance_time
-        
-        # Các trường cũ giữ lại cho khả năng tương thích
-        if self.verification_method:
-            data['verificationMethod'] = self.verification_method
-            
-        if self.verification_data:
-            data['verificationData'] = self.verification_data
-            
-        if self.check_in_time:
-            data['checkInTime'] = self.check_in_time
-            
-        if self.check_out_time:
-            data['checkOutTime'] = self.check_out_time
-            
-        if self.status:
-            data['status'] = self.status
-            
-        return data
+        return {
+            "attendanceId": self.attendance_id,
+            "userId": self.user_id,
+            "examId": self.exam_id,
+            "attendanceTime": self.attendance_time,
+            "status": self.status,
+            "checkInTime": self.check_in_time,
+            "checkOutTime": self.check_out_time,
+            "verificationMethod": self.verification_method,
+            "verificationData": self.verification_data,
+            "citizenCardVerified": self.citizen_card_verified,
+            "faceVerified": self.face_verified
+        }
+    
+    def to_dict(self):
+        """Chuyển đổi đối tượng thành dictionary"""
+        return {
+            "attendance_id": self.attendance_id,
+            "user": self.user,
+            "exam": self.exam,
+            "attendance_time": self.attendance_time,
+            "status": self.status,
+            "user_id": self.user_id,
+            "exam_id": self.exam_id,
+            "check_in_time": self.check_in_time,
+            "check_out_time": self.check_out_time,
+            "verification_method": self.verification_method,
+            "verification_data": self.verification_data,
+            "citizen_card_verified": self.citizen_card_verified,
+            "face_verified": self.face_verified
+        }
+    
+    def __str__(self):
+        return f"ExamAttendance(id={self.attendance_id}, user_id={self.user_id}, exam_id={self.exam_id}, status={self.status})"
+    
+    def __repr__(self):
+        return self.__str__()

@@ -183,33 +183,42 @@ class AttendancePanel(QWidget):
               # Set attendance details - using new API format
             attendance_id = attendance.attendance_id if hasattr(attendance, 'attendance_id') else (str(getattr(attendance, 'id', 'Unknown')))
             self.attendance_table.setItem(row, 0, QTableWidgetItem(str(attendance_id)))
-            
-            # Exam info
-            if hasattr(attendance, 'exam') and isinstance(attendance.exam, dict) and 'name' in attendance.exam:
-                exam_name = attendance.exam['name']
-            self.attendance_table.setItem(row, 1, QTableWidgetItem(exam_name))
+              # Exam info - Display both name and subject
+            exam_display = exam_name  # Default fallback
+            if hasattr(attendance, 'exam') and isinstance(attendance.exam, dict):
+                exam_name = attendance.exam.get('name', 'Unknown')
+                exam_subject = attendance.exam.get('subject', '')
+                if exam_subject:
+                    exam_display = f"{exam_name} - {exam_subject}"
+                else:
+                    exam_display = exam_name
+            self.attendance_table.setItem(row, 1, QTableWidgetItem(exam_display))
             
             # Candidate info
             if hasattr(attendance, 'candidate') and isinstance(attendance.candidate, dict) and 'name' in attendance.candidate:
                 user_name = attendance.candidate['name']
             self.attendance_table.setItem(row, 2, QTableWidgetItem(user_name))
-            
-            # Attendance time
+              # Attendance time
             attendance_time = ""
             if hasattr(attendance, 'attendanceTime') and attendance.attendanceTime:
                 attendance_time = attendance.attendanceTime
+            elif hasattr(attendance, 'attendance_time') and attendance.attendance_time:
+                attendance_time = attendance.attendance_time
             elif hasattr(attendance, 'check_in_time') and attendance.check_in_time:
                 attendance_time = attendance.check_in_time
+            
+            print(f"DEBUG: Attendance time for attendance {attendance.attendance_id if hasattr(attendance, 'attendance_id') else 'unknown'}: {attendance_time}")
                 
             attendance_time_item = QTableWidgetItem(str(attendance_time))
             self.attendance_table.setItem(row, 3, attendance_time_item)
-            
-            # CCCD Verification status
+              # CCCD Verification status
             cccd_verified = False
             if hasattr(attendance, 'citizenCardVerified'):
                 cccd_verified = attendance.citizenCardVerified
             
-            cccd_item = QTableWidgetItem("✓" if cccd_verified else "✗")
+            print(f"DEBUG: CCCD Verified for attendance {attendance.attendance_id if hasattr(attendance, 'attendance_id') else 'unknown'}: {cccd_verified} (type: {type(cccd_verified)})")
+            
+            cccd_item = QTableWidgetItem("✅" if cccd_verified else "❌")
             cccd_item.setBackground(Qt.green if cccd_verified else Qt.red)
             cccd_item.setTextAlignment(Qt.AlignCenter)
             self.attendance_table.setItem(row, 4, cccd_item)
@@ -219,7 +228,9 @@ class AttendancePanel(QWidget):
             if hasattr(attendance, 'faceVerified'):
                 face_verified = attendance.faceVerified
             
-            face_item = QTableWidgetItem("✓" if face_verified else "✗")
+            print(f"DEBUG: Face Verified for attendance {attendance.attendance_id if hasattr(attendance, 'attendance_id') else 'unknown'}: {face_verified} (type: {type(face_verified)})")
+            
+            face_item = QTableWidgetItem("✅" if face_verified else "❌")
             face_item.setBackground(Qt.green if face_verified else Qt.red)
             face_item.setTextAlignment(Qt.AlignCenter)
             self.attendance_table.setItem(row, 5, face_item)
