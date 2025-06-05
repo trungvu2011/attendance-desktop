@@ -2,7 +2,7 @@ from app.utils.api_service import ApiService
 from app.models.exam_attendance import ExamAttendance
 from config.config import Config
 from app.controllers.cccd_api import CCCDApiController
-from datetime import datetime
+from app.utils.datetime_utils import format_datetime_for_api
 
 class AttendanceController:
     def __init__(self):
@@ -75,7 +75,7 @@ class AttendanceController:
             verification_method="FACE_CCCD",
             citizen_card_verified=True,
             face_verified=True,
-            attendance_time=datetime.now().isoformat()
+            attendance_time=format_datetime_for_api()
         )
         
         # Thêm verification data nếu có
@@ -123,10 +123,9 @@ class AttendanceController:
             },
             "exam": {
                 "examId": exam_id
-            },
-            "citizenCardVerified": cccd_data is not None,
+            },            "citizenCardVerified": cccd_data is not None,
             "faceVerified": face_image_path is not None,
-            "attendanceTime": datetime.now().isoformat()
+            "attendanceTime": format_datetime_for_api()
         }
         
         # Gửi yêu cầu tới API
@@ -143,10 +142,9 @@ class AttendanceController:
             },
             "exam": {
                 "examId": exam_id
-            },
-            "citizenCardVerified": True,
+            },            "citizenCardVerified": True,
             "faceVerified": True,
-            "attendanceTime": datetime.now().isoformat()
+            "attendanceTime": format_datetime_for_api()
         }
         
         # Gửi yêu cầu tới API

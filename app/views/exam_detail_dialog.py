@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt
 from app.models.exam_attendance import ExamAttendance
 from app.controllers.attendance_controller import AttendanceController
 from app.utils.api_service import ApiService
-import datetime
+from app.utils.datetime_utils import format_datetime_for_api
 
 class ExamDetailDialog(QDialog):
     def __init__(self, parent, exam, exam_controller):
@@ -162,13 +162,12 @@ class ExamDetailDialog(QDialog):
             if not user_id:
                 QMessageBox.warning(self, "Lỗi", "Không xác định được thông tin người dùng.")
                 return
-            
-            # Create attendance object
+              # Create attendance object
             attendance = ExamAttendance(
                 user_id=user_id,
                 exam_id=self.exam.exam_id,
                 status="PRESENT",
-                attendance_time=datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+                attendance_time=format_datetime_for_api()
             )
             
             # Submit attendance

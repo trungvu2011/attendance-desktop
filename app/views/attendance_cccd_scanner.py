@@ -16,10 +16,10 @@ import os
 import json
 import face_recognition
 import socket
-from datetime import datetime
 from app.controllers.cccd_api import CCCDApiController
 from app.controllers.cccd_socket_server import CCCDSocketServer
 from app.utils.face_recognition import compare_faces
+from app.utils.datetime_utils import format_datetime_for_api, format_datetime_for_filename, format_time_from_iso
 
 class AttendanceCCCDScannerDialog(QDialog):
     """Dialog for scanning CCCD data for attendance verification"""
@@ -327,12 +327,11 @@ class AttendanceCCCDScannerDialog(QDialog):
             self.tab_widget.setCurrentIndex(0)
     
     def on_cccd_data_received(self, citizen_id, image_path, data):
-        """Callback when CCCD data is received from mobile app"""
-        # Store the received data
+        """Callback when CCCD data is received from mobile app"""        # Store the received data
         self.cccd_data_received[citizen_id] = {
             'image_path': image_path,
             'data': data,
-            'timestamp': datetime.now().isoformat()
+            'timestamp': format_datetime_for_api()
         }
         
         # Update CCCD status
@@ -368,9 +367,8 @@ class AttendanceCCCDScannerDialog(QDialog):
             
             # CCCD number
             self.received_cccd_list.setItem(row, 0, QTableWidgetItem(citizen_id))
-            
-            # Timestamp
-            timestamp = datetime.fromisoformat(data['timestamp']).strftime("%H:%M:%S")
+              # Timestamp
+            timestamp = format_time_from_iso(data['timestamp'])
             self.received_cccd_list.setItem(row, 1, QTableWidgetItem(timestamp))
             
             # Status
@@ -454,9 +452,8 @@ class AttendanceCCCDScannerDialog(QDialog):
                     # Face has been detected continuously for 3 seconds
                     self.status_label.setText("Đang xử lý khuôn mặt...")
                     self.scan_btn.setEnabled(False)
-                    
-                    # Capture the current frame and save it
-                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                      # Capture the current frame and save it
+                    timestamp = format_datetime_for_filename()
                     self.captured_face_path = os.path.join(self.data_dir, f"face_{timestamp}.jpg")
                     cv2.imwrite(self.captured_face_path, frame)
                     
@@ -542,9 +539,8 @@ class AttendanceCCCDScannerDialog(QDialog):
         """Confirm attendance for the current user"""
         if not self.current_user:
             return
-        
-        # Record attendance
-        timestamp = datetime.now().isoformat()
+          # Record attendance
+        timestamp = format_datetime_for_api()
         
         if self.exam:
             # Nếu điểm danh cho một kỳ thi cụ thể

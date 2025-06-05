@@ -1,4 +1,3 @@
-# filepath: d:\attendance-desktop\app\views\monitoring_panel.py
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                               QPushButton, QTableWidget, QTableWidgetItem,
                               QComboBox, QDateEdit, QMessageBox)
@@ -134,7 +133,7 @@ class MonitoringPanel(QWidget):
             self.log_table.setItem(row, 0, QTableWidgetItem(str(log.log_id)))
             self.log_table.setItem(row, 1, QTableWidgetItem(str(log.user_id)))
             self.log_table.setItem(row, 2, QTableWidgetItem(str(log.exam_id)))
-            # Format timestamp for better readability using Vietnamese format
+            # Format timestamp for better readability
             formatted_timestamp = format_timestamp_for_display(log.timestamp)
             self.log_table.setItem(row, 3, QTableWidgetItem(formatted_timestamp))
             self.log_table.setItem(row, 4, QTableWidgetItem(log.event_type))
@@ -171,7 +170,7 @@ class MonitoringPanel(QWidget):
             event_types = ["LOGIN", "LOGOUT", "ATTENDANCE", "CAMERA", "SYSTEM"]
             event_type = event_types[i % len(event_types)]
             
-            # Message based on event type in Vietnamese
+            # Message based on event type
             messages = {
                 "LOGIN": "Người dùng đăng nhập vào hệ thống",
                 "LOGOUT": "Người dùng đăng xuất khỏi hệ thống", 

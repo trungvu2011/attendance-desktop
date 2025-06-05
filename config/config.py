@@ -2,7 +2,7 @@ import os
 
 class Config:
     # API Base URL
-    API_BASE_URL = "http://localhost:8080/api"
+    API_BASE_URL = "http://13.212.197.79:8080/api"
     
     # Auth Endpoints
     AUTH_LOGIN = f"{API_BASE_URL}/auth/login"

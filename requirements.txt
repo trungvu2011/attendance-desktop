@@ -6,3 +6,4 @@ pillow==9.5.0
 Flask==2.3.2
 dlib
 face_recognition
+pytz==2023.3

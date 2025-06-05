@@ -11,6 +11,7 @@ from app.controllers.cccd_api import CCCDApiController
 from app.controllers.cccd_socket_server import CCCDSocketServer
 from app.utils.face_recognition import compare_faces
 from app.utils.api_service import ApiService
+from app.utils.datetime_utils import format_datetime_for_filename
 from app.models.user import User
 
 class FaceScannerDialog(QDialog):
@@ -207,7 +208,7 @@ class FaceScannerDialog(QDialog):
         """Lấy thông tin user đã đăng nhập từ API nội bộ (dùng ApiService để đảm bảo có token)"""
         try:
             api = ApiService.get_instance()
-            data = api.get("http://localhost:8080/api/user/profile")
+            data = api.get("http://13.212.197.79:8080/api/user/profile")
             print(f"API /api/user/profile data: {data}")
             if data and data.get("citizenId"):
                 user = User(
@@ -365,9 +366,8 @@ class FaceScannerDialog(QDialog):
                     self.status_label.setText("Đang xử lý khuôn mặt...")
                     self.scan_btn.setEnabled(False)
                     self.scan_complete = True
-                    
-                    # Capture the current frame and save it
-                    timestamp = time.strftime("%Y%m%d-%H%M%S")
+                      # Capture the current frame and save it
+                    timestamp = format_datetime_for_filename()
                     self.captured_face_path = os.path.join(self.data_dir, f"face_{timestamp}.jpg")
                     cv2.imwrite(self.captured_face_path, frame)
                     
@@ -415,7 +415,7 @@ class FaceScannerDialog(QDialog):
         if not (candidate_id and exam_id and citizen_card_number):
             QMessageBox.warning(self, "Lỗi điểm danh", f"Thiếu thông tin để điểm danh (user, exam hoặc CCCD).\nuser: {self.user}\nexam: {self.exam}")
             return False
-        url = "http://localhost:8080/api/attendance/check-in"
+        url = "http://13.212.197.79:8080/api/attendance/check-in"
         data = {
             'candidateId': candidate_id,
             'examId': exam_id,

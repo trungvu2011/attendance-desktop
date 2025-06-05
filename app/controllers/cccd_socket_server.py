@@ -3,7 +3,7 @@ import json
 import threading
 import base64
 import os
-from datetime import datetime
+from app.utils.datetime_utils import format_datetime_for_filename, format_datetime_for_api
 
 class CCCDSocketServer:
     """Socket server that listens for CCCD data from mobile devices"""
@@ -135,19 +135,17 @@ class CCCDSocketServer:
             if citizen_id and image_data:
                 # Decode base64 image data
                 image_bytes = base64.b64decode(image_data)
-                
-                # Save image to file
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                  # Save image to file
+                timestamp = format_datetime_for_filename()
                 file_path = os.path.join(self.data_dir, f"cccd_{citizen_id}_{timestamp}.jpg")
                 
                 with open(file_path, 'wb') as f:
                     f.write(image_bytes)
-                
-                # Store the data for retrieval
+                  # Store the data for retrieval
                 self.received_data[citizen_id] = {
                     'citizenId': citizen_id,
                     'image_path': file_path,
-                    'timestamp': datetime.now().isoformat(),
+                    'timestamp': format_datetime_for_api(),
                     'raw_data': data
                 }
                 

@@ -9,6 +9,7 @@ from app.views.exam_management import ExamManagementPanel
 from app.views.attendance_panel import AttendancePanel
 from app.views.monitoring_panel import MonitoringPanel
 from app.views.candidate_exam_panel import CandidateExamPanel
+from app.utils.datetime_utils import format_date_vietnamese
 from config.config import Config
 
 class DashboardScreen(QWidget):
@@ -82,10 +83,8 @@ class DashboardScreen(QWidget):
         
         # Welcome message
         welcome_label = QLabel(f"Xin chào, {user.name}")
-        welcome_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #1a73e8;")
-          # Role and date
-        import datetime
-        today = datetime.datetime.now().strftime("%d/%m/%Y")
+        welcome_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #1a73e8;")        # Role and date
+        today = format_date_vietnamese()
         
         role_label = QLabel(f"Vai trò: Thí sinh | Ngày: {today}")
         role_label.setStyleSheet("font-style: italic; color: #555;")

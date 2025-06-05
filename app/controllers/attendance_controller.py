@@ -2,7 +2,7 @@ from app.utils.api_service import ApiService
 from app.models.exam_attendance import ExamAttendance
 from config.config import Config
 from app.controllers.cccd_api import CCCDApiController
-from datetime import datetime
+from app.utils.datetime_utils import format_datetime_for_api
 
 class AttendanceController:
     def __init__(self):
@@ -77,7 +77,7 @@ class AttendanceController:
             verification_method="FACE_CCCD",
             citizen_card_verified=True,
             face_verified=True,
-            attendance_time=datetime.now().isoformat()
+            attendance_time=format_datetime_for_api()
         )
         
         # Thêm verification data nếu có
@@ -118,7 +118,7 @@ class AttendanceController:
         #    "attendanceTime": "..."
         # }
         
-        # Tạo dữ liệu phù hợp với API mới
+        # Tạo dữ liệu phù hợp với API mới    
         attendance_data = {
             "candidate": {
                 "userId": user_id
@@ -128,7 +128,7 @@ class AttendanceController:
             },
             "citizenCardVerified": cccd_data is not None,
             "faceVerified": face_image_path is not None,
-            "attendanceTime": datetime.now().isoformat()
+            "attendanceTime": format_datetime_for_api()
         }
         
         # Gửi yêu cầu tới API
@@ -136,7 +136,6 @@ class AttendanceController:
         if result:
             return ExamAttendance.from_json(result)
         return None
-    
     def mark_attendance_with_cccd(self, user_id, exam_id, status="PRESENT"):
         """Mark attendance with CCCD and face verification"""
         attendance_data = {
@@ -148,7 +147,7 @@ class AttendanceController:
             },
             "citizenCardVerified": True,
             "faceVerified": True,
-            "attendanceTime": datetime.now().isoformat()
+            "attendanceTime": format_datetime_for_api()
         }
         
         # Gửi yêu cầu tới API

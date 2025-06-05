@@ -53,7 +53,7 @@ The application supports two user roles:
 
 The application connects to a backend API for data storage and retrieval. The API endpoints can be configured in `config/config.py`.
 
-By default, the application connects to `http://localhost:8080/api` for all API operations.
+By default, the application connects to `http://13.212.197.79:8080/api` for all API operations.
 
 ## Development
 
